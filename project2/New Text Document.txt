@@ -1,0 +1,352 @@
+ProtectedRoute.js
+import React from 'react';
+import { Route, Redirect } from 'react-router-dom';
+
+const ProtectedRoute = ({ component: Component, ...rest }) => {
+  const isAuthenticated = /* Check if user is authenticated, e.g., from a global state */ false;
+
+  return (
+    <Route
+      {...rest}
+      render={(props) => {
+        return isAuthenticated ? <Component {...props} /> : <Redirect to="/login" />;
+      }}
+    />
+  );
+};
+
+export default ProtectedRoute;
+
+
+ Home.js
+import React from 'react';
+
+const Home = () => {
+  return (
+    <div>
+      <h1>Welcome to the Online Quiz Application</h1>
+    </div>
+  );
+}
+
+export default Home;
+
+
+ // Login.js
+import React from 'react';
+
+const Login = () => {
+  // Implement login logic here
+
+  return (
+    <div>
+      <h2>Login</h2>
+      {/* Login form */}
+    </div>
+  );
+}
+
+export default Login;
+
+
+// Register.js
+import React from 'react';
+
+const Register = () => {
+  // Implement registration logic here
+
+  return (
+    <div>
+      <h2>Register</h2>
+      {/* Registration form */}
+    </div>
+  );
+}
+
+export default Register;
+
+
+// CreateQuiz.js
+import React from 'react';
+
+const CreateQuiz = () => {
+  // Implement quiz creation logic here
+
+  return (
+    <div>
+      <h2>Create Quiz</h2>
+      {/* Quiz creation form */}
+    </div>
+  );
+}
+
+export default CreateQuiz;
+
+
+// Quiz.js
+import React from 'react';
+
+const Quiz = ({ match }) => {
+  const quizId = match.params.id;
+  // Fetch quiz details and questions based on quizId
+
+  return (
+    <div>
+      <h2>Quiz {quizId}</h2>
+      {/* Display quiz questions and handle user responses */}
+    </div>
+  );
+}
+
+export default Quiz;
+
+
+// QuizInterface.js
+import React, { useState, useEffect } from 'react';
+
+const QuizInterface = ({ questions, onSubmit, timerDuration }) => {
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState('');
+  const [timer, setTimer] = useState(timerDuration);
+
+  useEffect(() => {
+    const countdown = setInterval(() => {
+      setTimer((prevTimer) => prevTimer - 1);
+    }, 1000);
+
+    return () => clearInterval(countdown);
+  }, []);
+
+  useEffect(() => {
+    if (timer === 0) {
+      handleSubmit();
+    }
+  }, [timer]);
+
+  const handleOptionSelect = (option) => {
+    setSelectedAnswer(option);
+  };
+
+  const handleSubmit = () => {
+    // Submit the answer to the parent component
+    onSubmit({
+      questionId: questions[currentQuestionIndex].id,
+      selectedAnswer,
+    });
+
+    // Move to the next question or finish the quiz
+    if (currentQuestionIndex + 1 < questions.length) {
+      setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
+      setSelectedAnswer('');
+      setTimer(timerDuration);
+    } else {
+      // Quiz is finished
+    }
+  };
+
+  return (
+    <div>
+      <h3>Question {currentQuestionIndex + 1}</h3>
+      <p>{questions[currentQuestionIndex].text}</p>
+      
+      {/* Display options for multiple-choice questions */}
+      {questions[currentQuestionIndex].type === 'multiple-choice' && (
+        <div>
+          {questions[currentQuestionIndex].options.map((option, index) => (
+            <div key={index}>
+              <input
+                type="radio"
+                id={option${index}}
+                name="quizOption"
+                value={option}
+                checked={selectedAnswer === option}
+                onChange={() => handleOptionSelect(option)}
+              />
+              <label htmlFor={option${index}}>{option}</label>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Display input field for open-ended questions */}
+      {questions[currentQuestionIndex].type === 'open-ended' && (
+        <div>
+          <input
+            type="text"
+            value={selectedAnswer}
+            onChange={(e) => setSelectedAnswer(e.target.value)}
+          />
+        </div>
+      )}
+
+      <button onClick={handleSubmit}>Submit Answer</button>
+      <p>Time Remaining: {timer} seconds</p>
+    </div>
+  );
+}
+
+export default QuizInterface;
+
+
+ // Quiz.js
+import React, { useState } from 'react';
+import QuizInterface from './QuizInterface';
+
+const Quiz = ({ match }) => {
+  const quizId = match.params.id;
+  // Fetch quiz details and questions based on quizId
+  const [questions, setQuestions] = useState(/* Fetch questions from API or state */);
+  const timerDuration = 60; // Set the timer duration in seconds
+
+  const handleAnswerSubmit = (answer) => {
+    // Handle the submitted answer, e.g., store it in state or send it to the server
+    console.log('Submitted Answer:', answer);
+  };
+
+  return (
+    <div>
+      <h2>Quiz {quizId}</h2>
+      <QuizInterface
+        questions={questions}
+        onSubmit={handleAnswerSubmit}
+        timerDuration={timerDuration}
+      />
+    </div>
+  );
+}
+
+export default Quiz;
+
+
+// Scoring.js
+import React, { useState } from 'react';
+
+const Scoring = ({ questions, userAnswers, onQuizComplete }) => {
+  const [score, setScore] = useState(0);
+
+  const calculateScore = () => {
+    let totalCorrect = 0;
+
+    questions.forEach((question, index) => {
+      if (question.correctAnswer === userAnswers[index]) {
+        totalCorrect += 1;
+      }
+    });
+
+    const percentage = (totalCorrect / questions.length) * 100;
+    setScore(percentage.toFixed(2));
+    onQuizComplete(percentage);
+  };
+
+  return (
+    <div>
+      <h2>Quiz Complete</h2>
+      <p>Your Score: {score}%</p>
+      <button onClick={calculateScore}>Calculate Score</button>
+    </div>
+  );
+}
+
+export default Scoring;
+
+
+// Leaderboard.js
+import React, { useState, useEffect } from 'react';
+
+const Leaderboard = () => {
+  const [highScores, setHighScores] = useState([]);
+
+  useEffect(() => {
+    // Fetch high scores from the server or other data source
+    // Update the highScores state with the fetched data
+    // Example: fetchHighScores().then(data => setHighScores(data));
+  }, []);
+
+  return (
+    <div>
+      <h2>Leaderboard</h2>
+      <ul>
+        {highScores.map((score, index) => (
+          <li key={index}>{${score.username}: ${score.score}%}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default Leaderboard;
+
+
+// Quiz.js
+import React, { useState } from 'react';
+import QuizInterface from './QuizInterface';
+import Scoring from './Scoring';
+import Leaderboard from './Leaderboard';
+
+const Quiz = ({ match }) => {
+  const quizId = match.params.id;
+  // Fetch quiz details and questions based on quizId
+  const [questions, setQuestions] = useState(/* Fetch questions from API or state */);
+  const [userAnswers, setUserAnswers] = useState([]);
+  const [quizCompleted, setQuizCompleted] = useState(false);
+
+  const handleAnswerSubmit = (answer) => {
+    setUserAnswers((prevAnswers) => [...prevAnswers, answer.selectedAnswer]);
+  };
+
+  const handleQuizComplete = (percentage) => {
+    // Handle the completion of the quiz, e.g., send the user's score to the server
+    // Update the leaderboard or other relevant data
+    console.log('Quiz Completed! Score:', percentage);
+    setQuizCompleted(true);
+  };
+
+  return (
+    <div>
+      {!quizCompleted ? (
+        <QuizInterface
+          questions={questions}
+          onSubmit={handleAnswerSubmit}
+          timerDuration={60}
+        />
+      ) : (
+        <Scoring questions={questions} userAnswers={userAnswers} onQuizComplete={handleQuizComplete} />
+      )}
+
+      <Leaderboard />
+    </div>
+  );
+}
+
+export default Quiz;
+
+
+// App.js
+import React from 'react';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import Home from './components/Home';
+import Quiz from './components/Quiz';
+import Login from './components/Login';
+import Register from './components/Register';
+import CreateQuiz from './components/CreateQuiz';
+import Scoring from './components/Scoring';
+import Leaderboard from './components/Leaderboard';
+import ProtectedRoute from './components/ProtectedRoute';
+
+const App = () => {
+  return (
+    <Router>
+      <Switch>
+        <Route path="/" exact component={Home} />
+        <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
+        <ProtectedRoute path="/create" component={CreateQuiz} />
+        <Route path="/quiz/:id" component={Quiz} />
+        <Route path="/scoring" component={Scoring} />
+        <Route path="/leaderboard" component={Leaderboard} />
+      </Switch>
+    </Router>
+  );
+}
+
+export default App;
